@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.ims.beryllium.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "MixinGlStateManager"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

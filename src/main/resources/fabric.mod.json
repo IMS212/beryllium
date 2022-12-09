@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "beryllium",
   "version": "${version}",
-  "name": "Example Mod",
+  "name": "Beryllium",
   "description": "This is an example description! Tell everyone what your mod is about!",
   "authors": [
     "me"
@@ -16,16 +16,16 @@
   "icon": "assets/modid/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "example.Mod"
+    "client": [
+      "net.ims.beryllium.Beryllium"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "beryllium.mixins.json"
   ],
+  "accessWidener": "beryllium.accesswidener",
   "depends": {
     "fabricloader": "*",
-	"fabric-api": "*",
     "minecraft": ">=1.19",
     "java": ">=17"
   }

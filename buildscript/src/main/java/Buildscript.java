@@ -38,7 +38,7 @@ public class Buildscript extends SimpleFabricProject {
 
 	@Override
 	public MappingTree createMappings() {
-		return Yarn.ofMaven(FabricMaven.URL, FabricMaven.yarn(Properties.YARN_MAPPINGS)).tree;
+		return createMojmap();
 	}
 
 	@Override
@@ -48,56 +48,6 @@ public class Buildscript extends SimpleFabricProject {
 
 	@Override
 	public void getModDependencies(ModDependencyCollector d) {
-		
-		addFabricModules(d, new String[] {
-				"fabric-api-base",
-				"fabric-command-api-v2",
-				"fabric-convention-tags-v1",
-				"fabric-resource-loader-v0",
-				"fabric-crash-report-info-v1",
-				"fabric-dimensions-v1",
-				"fabric-entity-events-v1",
-				"fabric-events-interaction-v0",
-				"fabric-game-rule-api-v1",
-				"fabric-lifecycle-events-v1",
-				"fabric-message-api-v1",
-				"fabric-registry-sync-v0",
-				"fabric-screen-api-v1",
-				"fabric-key-binding-api-v1",
-				"fabric-networking-api-v1"
-		});
-
-		d.addMaven("https://api.modrinth.com/maven/", new MavenId("maven.modrinth", "lazydfu", Properties.LAZY_DFU), ModDependencyFlag.RUNTIME);
-		d.addMaven("https://api.modrinth.com/maven/", new MavenId("maven.modrinth", "ferrite-core", "5.0.0-fabric"), ModDependencyFlag.RUNTIME);
-		d.addMaven("https://api.modrinth.com/maven/", new MavenId("maven.modrinth", "starlight", "1.1.1+1.19"), ModDependencyFlag.RUNTIME);
-		d.addMaven("https://api.modrinth.com/maven/", new MavenId("maven.modrinth", "lithium", "mc1.19.2-0.10.1"), ModDependencyFlag.RUNTIME);
-	}
-	
-	public static void addFabricModules(ModDependencyCollector d, String[] modules) {
-		d.addMaven(FabricMaven.URL, new MavenId(FabricMaven.GROUP_ID + ".fabric-api", "fabric-api", Properties.FABRIC_API), ModDependencyFlag.RUNTIME, ModDependencyFlag.COMPILE);
-		try {
-			String temp = "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/%version%/fabric-api-%version%.pom";
-			String pom = temp.replaceAll("%version%", Properties.FABRIC_API);
-			URL url = new URL(pom);
-			URLConnection request = url.openConnection();
-			request.connect();
-			InputStreamReader isReader = new InputStreamReader(request.getInputStream());
-			MavenXpp3Reader reader = new MavenXpp3Reader();
-			Model model = reader.read(isReader);
-			ArrayList<String> mods = new ArrayList<>(List.of(modules));
-
-			model.getDependencies().forEach(dependency -> {
-				var id = dependency.getArtifactId();
-				var ver = dependency.getVersion();
-				if(mods.contains(id)) {
-					d.addMaven(FabricMaven.URL, new MavenId(FabricMaven.GROUP_ID + ".fabric-api", id, ver), ModDependencyFlag.RUNTIME, ModDependencyFlag.COMPILE);
-				}
-			});
-
-		}
-		catch(Exception e) {
-			System.out.println("Failed to add fabric modules due to an exception:\n" + e);
-		}
 	}
 
 	@Override
@@ -109,7 +59,7 @@ public class Buildscript extends SimpleFabricProject {
 	public BrachyuraDecompiler decompiler() {
 		return new FernflowerDecompiler(Maven.getMavenJarDep(QuiltMaven.URL, new MavenId("org.quiltmc", "quiltflower", Properties.QUILTFLOWER)));
 	}
-	
+
 	@Override
 	public ProcessorChain resourcesProcessingChain() {
 		return new ProcessorChain(super.resourcesProcessingChain(), new FmjVersionFixer(this));
