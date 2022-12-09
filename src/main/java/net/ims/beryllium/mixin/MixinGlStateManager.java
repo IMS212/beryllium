@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.nio.IntBuffer;
+import java.util.BitSet;
 
 @Mixin(GlStateManager.class)
 public class MixinGlStateManager {
@@ -22,26 +23,31 @@ public class MixinGlStateManager {
 	private static int activeTexture;
 
 	@Unique
-	private static boolean[] isDirty;
+	private static BitSet isDirty;
 
 	@Unique
 	private static Int2IntArrayMap framebufferMap = new Int2IntArrayMap();
 
+	@Unique
+	private static boolean isFramebufferDirty = false;
+
 	@Inject(method = "<clinit>", at = @At("TAIL"))
 	private static void setDirtyArray(CallbackInfo ci) {
-		isDirty = new boolean[TEXTURES.length];
+		isDirty = new BitSet(TEXTURES.length);
 	}
 
 	@Inject(method = "_drawElements", at = @At("HEAD"))
 	private static void checkForDirty(int i, int j, int k, long l, CallbackInfo ci) {
-			for (int i1 = 0; i1 < TEXTURES.length; i1++) {
-				GlStateManager.TextureState state = TEXTURES[i1];
-				if (isDirty[i1]) {
-					if (state.enable) {
-						ARBDirectStateAccess.glBindTextureUnit(i1, state.binding);
-					}
-					isDirty[i1] = false;
+			isDirty.stream().forEach(value -> {
+				isDirty.clear(value);
+				GlStateManager.TextureState state = TEXTURES[value];
+				if (state.enable) {
+					ARBDirectStateAccess.glBindTextureUnit(value, state.binding);
 				}
+			});
+
+			if (isFramebufferDirty) {
+				GL43C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, framebufferMap.get(GL30C.GL_FRAMEBUFFER));
 			}
 	}
 
@@ -54,7 +60,7 @@ public class MixinGlStateManager {
 		RenderSystem.assertOnRenderThreadOrInit();
 		if (i != TEXTURES[activeTexture].binding) {
 			TEXTURES[activeTexture].binding = i;
-			isDirty[activeTexture] = true;
+			isDirty.set(i);
 		}
 	}
 
@@ -87,7 +93,10 @@ public class MixinGlStateManager {
 	 */
 	@Overwrite
 	public static void _glBindFramebuffer(int i, int j) {
+		int previousValue = framebufferMap.get(i);
+		if (j == previousValue) return;
 		framebufferMap.put(i, j);
+		isFramebufferDirty = isFramebufferDirty || i == GL30C.GL_FRAMEBUFFER;
 	}
 
 	@Overwrite
