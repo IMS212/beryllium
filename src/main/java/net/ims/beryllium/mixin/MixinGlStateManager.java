@@ -31,6 +31,9 @@ public class MixinGlStateManager {
 	@Unique
 	private static boolean isFramebufferDirty = false;
 
+	@Unique
+	private static int currentProgram;
+
 	@Inject(method = "<clinit>", at = @At("TAIL"))
 	private static void setDirtyArray(CallbackInfo ci) {
 		isDirty = new BitSet(TEXTURES.length);
@@ -128,5 +131,19 @@ public class MixinGlStateManager {
 	public static void _getTexImage(int i, int j, int k, int l, long m) {
 		RenderSystem.assertOnRenderThread();
 		ARBDirectStateAccess.glGetTextureImage(getTexture(), i, j, k, l, m);
+	}
+
+	@Overwrite
+	public static void _glUseProgram(int i) {
+		RenderSystem.assertOnRenderThread();
+		if (i == 0) {
+			currentProgram = 0;
+			return;
+		}
+
+		if (i != currentProgram) {
+			currentProgram = i;
+			GL20.glUseProgram(i);
+		}
 	}
 }
