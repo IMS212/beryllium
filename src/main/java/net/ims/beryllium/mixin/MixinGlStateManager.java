@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.nio.IntBuffer;
 import java.util.BitSet;
 
-@Mixin(GlStateManager.class)
+@Mixin(value = GlStateManager.class, remap = false)
 public class MixinGlStateManager {
 	@Shadow
 	@Final
@@ -133,6 +133,10 @@ public class MixinGlStateManager {
 		ARBDirectStateAccess.glGetTextureImage(getTexture(), i, j, k, l, m);
 	}
 
+	/**
+	 * @author
+	 * @reason
+	 */
 	@Overwrite
 	public static void _glUseProgram(int i) {
 		RenderSystem.assertOnRenderThread();
