@@ -3,9 +3,6 @@ package net.ims.beryllium.mixin;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
-import it.unimi.dsi.fastutil.ints.IntArraySet;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.*;
 import org.spongepowered.asm.mixin.*;
@@ -26,7 +23,7 @@ public class MixinGlStateManager {
 	private static int activeTexture;
 
 	@Unique
-	private static IntOpenHashSet isDirty;
+	private static BitSet isDirty;
 
 	@Unique
 	private static Int2IntArrayMap framebufferMap = new Int2IntArrayMap();
@@ -39,23 +36,22 @@ public class MixinGlStateManager {
 
 	@Inject(method = "<clinit>", at = @At("TAIL"))
 	private static void setDirtyArray(CallbackInfo ci) {
-		isDirty = new IntOpenHashSet();
+		isDirty = new BitSet(TEXTURES.length);
 	}
 
 	@Inject(method = "_drawElements", at = @At("HEAD"))
 	private static void checkForDirty(int i, int j, int k, long l, CallbackInfo ci) {
-		isDirty.forEach(i1 -> {
-			GlStateManager.TextureState state = TEXTURES[i1];
-			if (state.enable) {
-				ARBDirectStateAccess.glBindTextureUnit(i1, state.binding);
+			isDirty.stream().forEach(value -> {
+				isDirty.clear(value);
+				GlStateManager.TextureState state = TEXTURES[value];
+				if (state.enable) {
+					ARBDirectStateAccess.glBindTextureUnit(value, state.binding);
+				}
+			});
+
+			if (isFramebufferDirty) {
+				GL43C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, framebufferMap.get(GL30C.GL_FRAMEBUFFER));
 			}
-		});
-
-		isDirty.clear();
-
-		if (isFramebufferDirty) {
-			GL43C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, framebufferMap.get(GL30C.GL_FRAMEBUFFER));
-		}
 	}
 
 	@Overwrite
@@ -67,7 +63,7 @@ public class MixinGlStateManager {
 		RenderSystem.assertOnRenderThreadOrInit();
 		if (i != TEXTURES[activeTexture].binding) {
 			TEXTURES[activeTexture].binding = i;
-			isDirty.add(i);
+			isDirty.set(i);
 		}
 	}
 
