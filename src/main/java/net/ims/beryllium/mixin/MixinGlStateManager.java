@@ -6,6 +6,9 @@ import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.*;
 import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.nio.IntBuffer;
 
@@ -19,10 +22,40 @@ public class MixinGlStateManager {
 	private static int activeTexture;
 
 	@Unique
+	private static boolean[] isDirty;
+
+	@Unique
 	private static Int2IntArrayMap framebufferMap = new Int2IntArrayMap();
+
+	@Inject(method = "<clinit>", at = @At("TAIL"))
+	private static void setDirtyArray(CallbackInfo ci) {
+		isDirty = new boolean[TEXTURES.length];
+	}
+
+	@Inject(method = "_drawElements", at = @At("HEAD"))
+	private static void checkForDirty(int i, int j, int k, long l, CallbackInfo ci) {
+			for (int i1 = 0; i1 < TEXTURES.length; i1++) {
+				GlStateManager.TextureState state = TEXTURES[i1];
+				if (isDirty[i1]) {
+					if (state.enable) {
+						ARBDirectStateAccess.glBindTextureUnit(i1, state.binding);
+					}
+					isDirty[i1] = false;
+				}
+			}
+	}
 
 	@Overwrite
 	public static void glActiveTexture(int i) {
+	}
+
+	@Overwrite
+	public static void _bindTexture(int i) {
+		RenderSystem.assertOnRenderThreadOrInit();
+		if (i != TEXTURES[activeTexture].binding) {
+			TEXTURES[activeTexture].binding = i;
+			isDirty[activeTexture] = true;
+		}
 	}
 
 
