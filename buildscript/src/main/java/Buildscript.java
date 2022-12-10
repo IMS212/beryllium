@@ -28,7 +28,7 @@ public class Buildscript extends SimpleFabricProject {
 
 	@Override
 	public String getVersion() {
-		return Properties.MOD_VERSION;
+		return Properties.MOD_VERSION + "-" + System.nanoTime();
 	}
 
 	@Override
